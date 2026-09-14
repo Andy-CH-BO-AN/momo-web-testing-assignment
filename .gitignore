@@ -217,7 +217,8 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# Playwright
-test-results/
-playwright-report/
-blob-report/
+# Test reports & artifacts
+/report.html
+/reports/
+/test-results/
+
