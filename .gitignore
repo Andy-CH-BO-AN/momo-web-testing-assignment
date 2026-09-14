@@ -217,15 +217,8 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# HTML test reports (pytest-html)
-report.html
-*.html
-reports/
-assets/
+# Test reports & artifacts
+/report.html
+/reports/
+/test-results/
 
-# Playwright test artifacts (failure traces & screenshots)
-test-results/
-playwright-report/
-blob-report/
-*.png
-*.zip
