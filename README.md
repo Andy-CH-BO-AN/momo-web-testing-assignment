@@ -88,11 +88,35 @@ test-results/
 playwright show-trace test-results/<test-directory>/trace.zip
 ```
 
+## Docker 執行環境 (Docker Environment)
+
+為降低本機 Python、Chromium 或作業系統環境差異造成無法執行的風險，本專案提供 Docker 執行方式作為**可重現的替代執行選項**（不取代原本的 virtualenv + pip 本機開發流程）。
+
+### 1. 建置 Docker 映像檔
+
+映像檔採用微軟官方 Playwright Python 環境（內建相容之 Chromium 瀏覽器與系統依賴）：
+
+```bash
+docker build -t momo-tests .
+```
+
+### 2. 執行測試
+
+```bash
+# 預設執行 Headless 測試（容器預設指令即為 pytest）
+docker run --rm --init --ipc=host momo-tests
+
+# 執行測試並將 HTML 測試報告輸出至本機 test-results 目錄
+docker run --rm --init --ipc=host -v $(pwd)/test-results:/app/test-results momo-tests pytest --html=test-results/report.html --self-contained-html
+```
+
 ## 專案結構 (Project Structure)
 
 ```text
 .
+├── .dockerignore        # Docker build context 排除規則
 ├── AGENTS.md            # 開發與測試撰寫規範
+├── Dockerfile           # Playwright 官方 Python 測試容器定義
 ├── README.md            # 專案環境建置與執行說明
 ├── pytest.ini           # pytest 設定檔（預設瀏覽器、除錯 artifacts 策略）
 ├── requirements.txt     # 專案相依套件定義
