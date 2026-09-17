@@ -118,8 +118,11 @@ docker run --rm --init --ipc=host -v $(pwd)/test-results:/app/test-results momo-
 ├── AGENTS.md            # 開發與測試撰寫規範
 ├── Dockerfile           # Playwright 官方 Python 測試容器定義
 ├── README.md            # 專案環境建置與執行說明
+├── pages/
+│   ├── __init__.py      # pages package 初始化檔
+│   └── search_page.py   # Search Page Object（封裝 Locator 與頁面動作）
 ├── pytest.ini           # pytest 設定檔（預設瀏覽器、除錯 artifacts 策略）
 ├── requirements.txt     # 專案相依套件定義
 └── tests/
-    └── test_smoke.py    # 基本 Smoke Test（驗證瀏覽器啟動與首頁連線）
+    └── test_search.py   # momo Search 功能自動化測試案例
 ```
