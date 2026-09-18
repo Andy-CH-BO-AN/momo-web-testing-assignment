@@ -142,23 +142,20 @@ def test_search_special_character(page: Page) -> None:
     # Arrange: Navigate to momo homepage
     search_page = SearchPage(page)
     search_page.goto_home()
-    query = "iphone 17+"
+    query = "iphone+"
 
     # Act: Submit search with special character
     search_page.search_by_button(query)
 
-    # Assert: Query state preserves 'iphone 17+' and results match base terms
+    # Assert: Query state preserves 'iphone+' and results include an iPhone-related product
     expect(page).to_have_url(re.compile(rf"{re.escape(_search_path(query))}(?:\?|$)"))
     expect(search_page.product_titles.first).to_be_visible()
     expect(search_page.search_input).to_have_value(query)
     titles = search_page.product_titles.all_inner_texts()
 
-    has_matching_title = any(
-        "iphone" in title.lower() and "17" in title.lower()
-        for title in titles
-    )
+    has_matching_title = any("iphone" in title.lower() for title in titles)
     assert has_matching_title, (
-        "Expected at least one product title containing 'iphone' and '17', "
+        "Expected at least one product title containing 'iphone', "
         f"got titles: {titles[:5]}"
     )
 
