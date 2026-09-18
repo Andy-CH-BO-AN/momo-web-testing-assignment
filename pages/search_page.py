@@ -25,6 +25,9 @@ class SearchPage:
         # Organic search result product titles
         self.product_titles: Locator = page.locator(".listAreaLi h3.prdName")
 
+        # Organic search result product IDs
+        self.product_ids: Locator = page.locator(".listAreaLi input[name='viewProdId']")
+
         # Dedicated no-result container and message text
         self.no_result_container: Locator = page.locator(".noSearchResultWrapper")
         self.no_result_text: Locator = page.locator(".noResultText")
@@ -61,9 +64,7 @@ class SearchPage:
 
     def get_organic_product_ids(self) -> list[str]:
         """Extract product IDs from organic search result items in one browser call."""
-        product_ids = self.page.locator(
-            ".listAreaLi input[name='viewProdId']"
-        ).evaluate_all(
+        product_ids = self.product_ids.evaluate_all(
             """
             (elements) => elements
                 .map((element) => element.value.trim())
