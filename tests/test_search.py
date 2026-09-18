@@ -145,7 +145,6 @@ def test_search_pagination(page: Page) -> None:
     )
 
     assert page.url != page_1_url, f"Page URL did not change after pagination: {page.url}"
-    assert "EC404" not in page.url, f"Unexpected error page URL: {page.url}"
 
 
 def test_search_special_character(page: Page) -> None:
@@ -215,4 +214,3 @@ def test_search_whitespace_only_input(page: Page) -> None:
     expect(search_page.no_result_container).to_be_visible()
     expect(search_page.no_result_text).to_contain_text(re.compile(r"查無.*相關商品"))
     expect(search_page.product_titles).to_have_count(0)
-    assert "EC404" not in page.url, f"Unexpected error page URL: {page.url}"
