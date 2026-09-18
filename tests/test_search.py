@@ -203,6 +203,9 @@ def test_search_whitespace_only_input(page: Page) -> None:
     search_page = SearchPage(page)
     search_page.goto_home()
     whitespace_query = "   "
+    expected_no_result_text = (
+        f'很抱歉，查無 "{whitespace_query}"的相關商品，您可以調整關鍵字試試看'
+    )
 
     # Act: Search with whitespace-only input
     search_page.search_by_button(whitespace_query)
@@ -212,5 +215,5 @@ def test_search_whitespace_only_input(page: Page) -> None:
         re.compile(rf"{re.escape(_search_path(whitespace_query))}(?:\?|$)")
     )
     expect(search_page.no_result_container).to_be_visible()
-    expect(search_page.no_result_text).to_contain_text(re.compile(r"查無.*相關商品"))
+    expect(search_page.no_result_text).to_have_text(expected_no_result_text)
     expect(search_page.product_titles).to_have_count(0)
