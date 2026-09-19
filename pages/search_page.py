@@ -54,6 +54,14 @@ class SearchPage:
         """Click search button directly without filling (e.g. for empty input scenario)."""
         self.search_button.click()
 
+    def press_enter(self) -> None:
+        """Press Enter in the search input without changing its current value."""
+        self.search_input.press("Enter")
+
+    def click_search_suggestion(self, suggestion: str) -> None:
+        """Click an exact-match search suggestion link from the homepage."""
+        self.page.get_by_role("link", name=suggestion, exact=True).click()
+
     def click_next_page(self) -> None:
         """Click the next page pagination link."""
         self.next_page_link.click()
