@@ -69,7 +69,7 @@ class SearchPage:
         Raises:
             AssertionError: If no visible, non-empty search suggestion is found.
         """
-        self.suggestion_items.first.wait_for(state="visible")
+        self.suggestion_items.first.wait_for(state="attached")
         count = self.suggestion_items.count()
         for index in range(count):
             candidate_locator = self.suggestion_items.nth(index)
