@@ -1,6 +1,7 @@
 import re
 from urllib.parse import quote
 
+import pytest
 from playwright.sync_api import Page, expect
 
 from pages.search_page import SearchPage
@@ -158,6 +159,70 @@ def test_search_special_character(page: Page) -> None:
         "Expected at least one product title containing 'iphone', "
         f"got titles: {titles[:5]}"
     )
+
+
+
+@pytest.mark.parametrize(
+    "suggestion",
+    [
+        "iPhone 18 Pro Max",
+        "17 Pro Max 透明殼",
+    ],
+)
+def test_search_suggestion(page: Page, suggestion: str) -> None:
+    """Verify that clicking a search suggestion applies the same relevance rules as typed queries."""
+    # Arrange: Navigate to momo homepage
+    search_page = SearchPage(page)
+    search_page.goto_home()
+    required_keywords = re.findall(r"[A-Za-z]+|\d+|[\u4e00-\u9fff]+", suggestion)
+
+    # Act: Click a "猜你想搜" suggestion
+    search_page.click_search_suggestion(suggestion)
+
+    # Assert: Suggestion becomes the active query and returns relevant organic results
+    expect(page).to_have_url(re.compile(rf"{re.escape(_search_path(suggestion))}(?:\?|$)"))
+    expect(search_page.product_titles.first).to_be_visible()
+    expect(search_page.search_input).to_have_value(suggestion)
+    titles = search_page.product_titles.all_inner_texts()
+
+    if len(required_keywords) == 1:
+        keyword = required_keywords[0]
+        failed_results = [
+            (index, title)
+            for index, title in enumerate(titles, start=1)
+            if keyword.lower() not in title.lower()
+        ]
+        assert not failed_results, (
+            f"Expected every product title to contain '{keyword}' (case-insensitive).\n"
+            f"Non-matching result indexes: {[idx for idx, _ in failed_results]}.\n"
+            f"Sample non-matching titles: {[title for _, title in failed_results[:5]]}"
+        )
+    else:
+        matching_results = [
+            title
+            for title in titles
+            if all(keyword.lower() in title.lower() for keyword in required_keywords)
+        ]
+        assert matching_results, (
+            "Expected at least one product title containing all keywords "
+            f"{required_keywords}. Sample titles: {titles[:5]}"
+        )
+
+
+def test_search_empty_input_with_enter(page: Page) -> None:
+    """Verify that pressing Enter with an empty search input does not trigger a search."""
+    # Arrange: Navigate to momo homepage with an empty search input
+    search_page = SearchPage(page)
+    search_page.goto_home()
+    expect(search_page.search_input).to_have_value("")
+    home_url = page.url
+
+    # Act: Press Enter without entering a keyword
+    search_page.press_enter()
+
+    # Assert: No search navigation occurs and the input remains empty
+    expect(page).to_have_url(home_url)
+    expect(search_page.search_input).to_have_value("")
 
 
 def test_search_empty_input_with_button(page: Page) -> None:
