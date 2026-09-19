@@ -36,6 +36,11 @@ class SearchPage:
         self.active_page_indicator: Locator = page.locator(".pagination .pagination-link.selected").first
         self.next_page_link: Locator = page.locator(".pageArea a:has-text('下一頁')").first
 
+        # Search suggestions under '猜你想搜' on homepage
+        self.suggestion_items: Locator = page.locator(
+            "ul:has(span:has-text('猜你想搜')) [data-testid='keyword-item'] a"
+        )
+
     def goto_home(self) -> None:
         """Navigate to momo homepage."""
         self.page.goto(MOMO_HOME_URL, wait_until="domcontentloaded")
@@ -50,9 +55,36 @@ class SearchPage:
         self.search_input.fill(keyword)
         self.search_input.press("Enter")
 
+    def press_enter(self) -> None:
+        """Press Enter directly inside search input without typing."""
+        self.search_input.press("Enter")
+
     def click_search_button(self) -> None:
         """Click search button directly without filling (e.g. for empty input scenario)."""
         self.search_button.click()
+
+    def get_first_visible_search_suggestion(self) -> tuple[str, Locator]:
+        """Find and return the text and Locator of the first visible, non-empty search suggestion.
+
+        Raises:
+            AssertionError: If no visible, non-empty search suggestion is found.
+        """
+        self.suggestion_items.first.wait_for(state="attached")
+        count = self.suggestion_items.count()
+        for index in range(count):
+            candidate_locator = self.suggestion_items.nth(index)
+            if candidate_locator.is_visible():
+                candidate_text = candidate_locator.inner_text().strip()
+                if candidate_text:
+                    return candidate_text, candidate_locator
+
+        raise AssertionError(
+            "Failed to find any visible, non-empty search suggestion in '猜你想搜' section."
+        )
+
+    def click_search_suggestion(self, suggestion_locator: Locator) -> None:
+        """Click the specified search suggestion link."""
+        suggestion_locator.click()
 
     def click_next_page(self) -> None:
         """Click the next page pagination link."""
@@ -72,3 +104,4 @@ class SearchPage:
             """
         )
         return cast(list[str], product_ids)
+

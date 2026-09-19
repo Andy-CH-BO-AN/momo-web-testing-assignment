@@ -200,3 +200,39 @@ def test_search_whitespace_only_input(page: Page) -> None:
     expect(search_page.no_result_container).to_be_visible()
     expect(search_page.no_result_text).to_have_text(expected_no_result_text)
     expect(search_page.product_titles).to_have_count(0)
+
+
+def test_search_dynamic_suggestion(page: Page) -> None:
+    """Verify that clicking a dynamic homepage search suggestion brings the keyword into search flow."""
+    # Arrange: Navigate to momo homepage and dynamically pick the first visible suggestion
+    search_page = SearchPage(page)
+    search_page.goto_home()
+
+    suggestion, suggestion_locator = search_page.get_first_visible_search_suggestion()
+
+    # Act: Click the acquired suggestion
+    search_page.click_search_suggestion(suggestion_locator)
+
+    # Assert: Result page matches suggestion, search input reflects it, and organic results appear
+    expect(page).to_have_url(re.compile(rf"{re.escape(_search_path(suggestion))}(?:\?|$)"))
+    expect(search_page.search_input).to_have_value(suggestion)
+    expect(search_page.product_titles.first).to_be_visible()
+
+
+def test_search_empty_input_with_enter(page: Page) -> None:
+    """Verify that pressing Enter with empty input does not trigger search and remains on homepage."""
+    # Arrange: Navigate to momo homepage and confirm search input is empty
+    search_page = SearchPage(page)
+    search_page.goto_home()
+
+    expect(search_page.search_input).to_have_value("")
+    initial_url = page.url
+
+    # Act: Press Enter directly on search input
+    search_page.press_enter()
+
+    # Assert: Remains on homepage without navigating to /search/... path and input stays empty
+    expect(page).not_to_have_url(re.compile(r"/search(?:/|\?|$)"))
+    expect(page).to_have_url(initial_url)
+    expect(search_page.search_input).to_have_value("")
+
