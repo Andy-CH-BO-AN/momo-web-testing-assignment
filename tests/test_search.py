@@ -12,6 +12,35 @@ def _search_path(query: str) -> str:
     return f"/search/{quote(query, safe='')}"
 
 
+def _assert_search_result_relevance(query: str, titles: list[str]) -> None:
+    """Apply the single-keyword or multi-keyword relevance rule based on the query."""
+    required_keywords = re.findall(r"[A-Za-z]+|\d+|[\u4e00-\u9fff]+", query)
+
+    if len(required_keywords) == 1:
+        keyword = required_keywords[0]
+        failed_results = [
+            (index, title)
+            for index, title in enumerate(titles, start=1)
+            if keyword.lower() not in title.lower()
+        ]
+        assert not failed_results, (
+            f"Expected every product title to contain '{keyword}' (case-insensitive).\n"
+            f"Non-matching result indexes: {[idx for idx, _ in failed_results]}.\n"
+            f"Sample non-matching titles: {[title for _, title in failed_results[:5]]}"
+        )
+        return
+
+    matching_results = [
+        title
+        for title in titles
+        if all(keyword.lower() in title.lower() for keyword in required_keywords)
+    ]
+    assert matching_results, (
+        "Expected at least one product title containing all keywords "
+        f"{required_keywords}. Sample titles: {titles[:5]}"
+    )
+
+
 def test_search_normal_keyword_with_button(page: Page) -> None:
     """Verify that searching a normal keyword via the Search button successfully loads results."""
     # Arrange: Navigate to momo homepage
@@ -28,16 +57,7 @@ def test_search_normal_keyword_with_button(page: Page) -> None:
     expect(search_page.search_input).to_have_value(keyword)
     titles = search_page.product_titles.all_inner_texts()
 
-    failed_results = [
-        (index, title)
-        for index, title in enumerate(titles, start=1)
-        if keyword.lower() not in title.lower()
-    ]
-    assert not failed_results, (
-        f"Expected every product title to contain '{keyword}' (case-insensitive).\n"
-        f"Non-matching result indexes: {[idx for idx, _ in failed_results]}.\n"
-        f"Sample non-matching titles: {[title for _, title in failed_results[:5]]}"
-    )
+    _assert_search_result_relevance(keyword, titles)
 
 
 def test_search_multi_keyword_with_enter(page: Page) -> None:
@@ -46,7 +66,6 @@ def test_search_multi_keyword_with_enter(page: Page) -> None:
     search_page = SearchPage(page)
     search_page.goto_home()
     query = "iphone 17系列"
-    required_keywords = re.findall(r"[A-Za-z]+|\d+|[\u4e00-\u9fff]+", query)
 
     # Act: Search using Enter key
     search_page.search_by_enter(query)
@@ -58,19 +77,7 @@ def test_search_multi_keyword_with_enter(page: Page) -> None:
 
     titles = search_page.product_titles.all_inner_texts()
 
-    matching_results = [
-        title
-        for title in titles
-        if all(
-            keyword.lower() in title.lower()
-            for keyword in required_keywords
-        )
-    ]
-    assert matching_results, (
-        f"Expected at least one product title containing all keywords "
-        f"{required_keywords}. "
-        f"Sample titles: {titles[:5]}"
-    )
+    _assert_search_result_relevance(query, titles)
 
 
 def test_search_no_result(page: Page) -> None:
@@ -161,7 +168,6 @@ def test_search_special_character(page: Page) -> None:
     )
 
 
-
 @pytest.mark.parametrize(
     "suggestion",
     [
@@ -174,8 +180,6 @@ def test_search_suggestion(page: Page, suggestion: str) -> None:
     # Arrange: Navigate to momo homepage
     search_page = SearchPage(page)
     search_page.goto_home()
-    required_keywords = re.findall(r"[A-Za-z]+|\d+|[\u4e00-\u9fff]+", suggestion)
-
     # Act: Click a "猜你想搜" suggestion
     search_page.click_search_suggestion(suggestion)
 
@@ -185,28 +189,7 @@ def test_search_suggestion(page: Page, suggestion: str) -> None:
     expect(search_page.search_input).to_have_value(suggestion)
     titles = search_page.product_titles.all_inner_texts()
 
-    if len(required_keywords) == 1:
-        keyword = required_keywords[0]
-        failed_results = [
-            (index, title)
-            for index, title in enumerate(titles, start=1)
-            if keyword.lower() not in title.lower()
-        ]
-        assert not failed_results, (
-            f"Expected every product title to contain '{keyword}' (case-insensitive).\n"
-            f"Non-matching result indexes: {[idx for idx, _ in failed_results]}.\n"
-            f"Sample non-matching titles: {[title for _, title in failed_results[:5]]}"
-        )
-    else:
-        matching_results = [
-            title
-            for title in titles
-            if all(keyword.lower() in title.lower() for keyword in required_keywords)
-        ]
-        assert matching_results, (
-            "Expected at least one product title containing all keywords "
-            f"{required_keywords}. Sample titles: {titles[:5]}"
-        )
+    _assert_search_result_relevance(suggestion, titles)
 
 
 def test_search_empty_input_with_enter(page: Page) -> None:
