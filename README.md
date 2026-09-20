@@ -78,10 +78,24 @@ pytest --headed
 
 ```bash
 # 執行測試並產生自包含 report.html
-pytest --html=report.html --self-contained-html
+pytest --html=test-results/report.html --self-contained-html
 ```
 
-產生的 `report.html` 可直接以任何瀏覽器開啟檢視，無外部資源相依。
+測試報告包含 testcase 執行結果、耗時與失敗資訊；當 testcase 在執行階段失敗時，`conftest.py` 會額外擷取 **full-page screenshot**，並以 Base64 形式直接嵌入 HTML report，讓失敗畫面可與 testcase 結果一起檢視。
+
+由於使用 `--self-contained-html`，產生的 `report.html` 不依賴外部 CSS、圖片或其他靜態資源，可直接以瀏覽器開啟或作為測試產物保存。
+
+## 可觀測性與失敗診斷 (Observability & Failure Diagnostics)
+
+本專案將可觀測性聚焦在「測試失敗後能否快速還原當下狀態」，而不是只保留 assertion error。測試失敗時會保留下列診斷資訊：
+
+- **HTML Test Report**：集中呈現 testcase 狀態、耗時、錯誤訊息，並內嵌失敗畫面。
+- **Full-page Screenshot**：由 pytest hook 在 Playwright Page teardown 前擷取，另外保存至 `test-results/screenshots/`。
+- **Playwright Failure Screenshot**：透過 `--screenshot only-on-failure` 保留 pytest-playwright 原生失敗截圖。
+- **Playwright Trace**：透過 `--tracing retain-on-failure` 僅保留失敗案例的 trace，包含 DOM Snapshot、Console 與 Network request 等資訊。
+- **集中式 Artifact Directory**：所有診斷產物集中於 `test-results/`，避免 artifact 散落於專案各處。
+
+這些資訊形成由 **測試結果 → 畫面狀態 → Browser / DOM / Network 執行軌跡** 的診斷鏈，讓失敗不只回答「哪個 assertion 掛掉」，也能進一步追查「失敗當下頁面處於什麼狀態，以及前面發生了什麼」。
 
 ## 測試失敗除錯機制 (Failure Debugging)
 
@@ -140,7 +154,7 @@ docker run --rm --init --ipc=host -v $(pwd)/test-results:/app/test-results momo-
 ├── .dockerignore        # Docker build context 排除規則
 ├── AGENTS.md            # 開發與測試撰寫規範
 ├── Dockerfile           # Playwright 官方 Python 測試容器定義
-├── conftest.py          # pytest 共用 fixture / hook 設定
+├── conftest.py          # pytest hook：失敗截圖擷取、HTML report attachment
 ├── README.md            # 專案環境建置與執行說明
 ├── pages/
 │   ├── __init__.py      # pages package 初始化檔
