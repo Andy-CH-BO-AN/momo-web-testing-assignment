@@ -231,8 +231,6 @@ def test_search_empty_input_with_enter(page: Page) -> None:
     # Act: Press Enter directly on search input
     search_page.press_enter()
 
-    # Assert: Remains on homepage without navigating to /search/... path and input stays empty
-    expect(page).not_to_have_url(re.compile(r"/search(?:/|\?|$)"))
+    # Assert: Remains on homepage and input stays empty
     expect(page).to_have_url(initial_url)
     expect(search_page.search_input).to_have_value("")
-
