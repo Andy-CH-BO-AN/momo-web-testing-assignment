@@ -97,6 +97,10 @@ pytest --html=test-results/report.html --self-contained-html
 
 這些資訊形成由 **測試結果 → 畫面狀態 → Browser / DOM / Network 執行軌跡** 的診斷鏈，讓失敗不只回答「哪個 assertion 掛掉」，也能進一步追查「失敗當下頁面處於什麼狀態，以及前面發生了什麼」。
 
+## CI
+
+每次建立 Pull Request，以及 push 至 `main` 時，GitHub Actions 會在乾淨環境執行 Ruff 與 Playwright/Pytest（Chromium）驗證。若測試失敗，可從該次 GitHub Actions 執行結果下載 HTML 報告、截圖與 trace 等除錯 artifacts。
+
 ## 測試失敗除錯機制 (Failure Debugging)
 
 專案已於 `pytest.ini` 設定 `pytest-playwright` 原生功能，**僅在測試失敗時自動收集除錯產物**：
@@ -152,6 +156,7 @@ docker run --rm --init --ipc=host -v $(pwd)/test-results:/app/test-results momo-
 ```text
 .
 ├── .dockerignore        # Docker build context 排除規則
+├── .github/workflows/ci.yml # GitHub Actions CI 設定
 ├── AGENTS.md            # 開發與測試撰寫規範
 ├── Dockerfile           # Playwright 官方 Python 測試容器定義
 ├── conftest.py          # pytest hook：失敗截圖擷取、HTML report attachment
