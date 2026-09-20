@@ -1,6 +1,29 @@
 # momo-web-testing-assignment
 
-本專案為 momo 購物網 Web 自動化測試專案，使用 Python、pytest 與 Playwright 建立。
+本專案以 momo 購物網搜尋功能為測試主題，使用 Python、pytest 與 Playwright 建立可重現的 Web E2E 自動化測試，涵蓋一般搜尋、邊界輸入、動態推薦與分頁結果一致性等情境。
+
+
+## 測試範圍 (Test Scenarios)
+
+目前搜尋功能涵蓋以下情境：
+
+- 一般關鍵字搜尋：輸入一般關鍵字並透過搜尋按鈕送出，驗證搜尋結果與關鍵字一致性。
+- 多關鍵字搜尋：透過 Enter 送出多關鍵字查詢，驗證至少有商品完整符合拆解後的搜尋詞。
+- 無結果搜尋：使用不存在的關鍵字，驗證無結果訊息與商品數量。
+- 分頁：驗證切換至第 2 頁後搜尋條件仍保留，且兩頁 organic product ID 不重複。
+- 特殊字元：驗證包含特殊字元的搜尋詞可正確保留 query state 並取得相關結果。
+- 空白輸入 + 搜尋按鈕：驗證網站使用當下動態 placeholder 作為搜尋詞。
+- 僅空白字元輸入：驗證 whitespace-only query 進入明確的無結果狀態。
+- 動態搜尋推薦：不 hardcode 推薦詞，從首頁「猜你想搜」取得第一個可見項目並驗證搜尋流程。
+- 空白輸入 + Enter：驗證不觸發 navigation，並維持空白輸入狀態。
+
+## 測試設計原則 (Test Design)
+
+- **Page Object 職責分離**：Page Object 封裝 locator 與頁面操作；business assertions 保留於 testcase，讓測試意圖直接可讀。
+- **State-based synchronization**：使用 Playwright auto-wait 與狀態 assertion，不使用固定時間的 `time.sleep`。
+- **避免以 retry 掩蓋問題**：測試失敗直接反映實際狀態，不以 retry 隱藏 flaky behavior。
+- **避免不必要的 hardcode**：例如首頁動態「猜你想搜」由 runtime 取得目前可見推薦詞，而非綁定固定文案。
+- **驗證資料一致性**：分頁除了確認頁碼切換，也以 organic product ID 驗證單頁與跨頁結果不重複。
 
 ## 環境需求 (Prerequisites)
 
@@ -94,7 +117,7 @@ playwright show-trace test-results/<test-directory>/trace.zip
 
 ### 1. 建置 Docker 映像檔
 
-映像檔採用微軟官方 Playwright Python 環境（內建相容之 Chromium 瀏覽器與系統依賴）：
+映像檔採用微軟官方 Playwright Python 環境（內建相容之 Chromium 瀏覽器與系統依賴）。Docker image 與 Python Playwright package 均固定於 `1.62.0`，避免瀏覽器、driver/runtime 與套件版本不一致造成環境差異：
 
 ```bash
 docker build -t momo-tests .
@@ -117,6 +140,7 @@ docker run --rm --init --ipc=host -v $(pwd)/test-results:/app/test-results momo-
 ├── .dockerignore        # Docker build context 排除規則
 ├── AGENTS.md            # 開發與測試撰寫規範
 ├── Dockerfile           # Playwright 官方 Python 測試容器定義
+├── conftest.py          # pytest 共用 fixture / hook 設定
 ├── README.md            # 專案環境建置與執行說明
 ├── pages/
 │   ├── __init__.py      # pages package 初始化檔
