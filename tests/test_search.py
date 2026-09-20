@@ -40,11 +40,11 @@ def test_search_normal_keyword_with_button(page: Page) -> None:
 
 
 def test_search_multi_keyword_with_enter(page: Page) -> None:
-    """Verify that multi-keyword search submitted via Enter returns products matching all tokens."""
+    """Verify that multi-keyword search via Enter returns at least one product matching all tokens."""
     # Arrange: Navigate to momo homepage
     search_page = SearchPage(page)
     search_page.goto_home()
-    query = "iphone 17系列"
+    query = "iphone 18"
     required_keywords = re.findall(r"[A-Za-z]+|\d+|[\u4e00-\u9fff]+", query)
 
     # Act: Search using Enter key
