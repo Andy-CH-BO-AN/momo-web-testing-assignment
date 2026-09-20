@@ -1,7 +1,7 @@
 import base64
-from pathlib import Path
 import re
 import warnings
+from pathlib import Path
 
 import pytest
 from pytest_html import extras
@@ -30,7 +30,7 @@ def pytest_runtest_makereport(item, call):
         # 1. Capture screenshot bytes before page teardown
         try:
             screenshot_bytes = page.screenshot(full_page=True)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - failure-artifact capture must not mask the test result.
             warnings.warn(
                 f"[Failure Screenshot] Failed to capture full-page screenshot for {item.name}: {exc}",
                 UserWarning,
@@ -43,7 +43,7 @@ def pytest_runtest_makereport(item, call):
             SCREENSHOT_DIR.mkdir(parents=True, exist_ok=True)
             screenshot_path = SCREENSHOT_DIR / f"{safe_name}.png"
             screenshot_path.write_bytes(screenshot_bytes)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - failure-artifact capture must not mask the test result.
             warnings.warn(
                 f"[Failure Screenshot] Failed to save screenshot to disk for {item.name}: {exc}",
                 UserWarning,
@@ -55,7 +55,7 @@ def pytest_runtest_makereport(item, call):
             report_extras = getattr(report, "extras", [])
             report_extras.append(extras.png(b64_content, name="Failure Screenshot"))
             report.extras = report_extras
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - failure-artifact capture must not mask the test result.
             warnings.warn(
                 f"[Failure Screenshot] Failed to attach screenshot to HTML report for {item.name}: {exc}",
                 UserWarning,
