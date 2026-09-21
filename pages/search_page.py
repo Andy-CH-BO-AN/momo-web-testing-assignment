@@ -21,14 +21,6 @@ class SearchPage:
 
         # Transient promotion modal shown during homepage load
         self.promotion_modal: Locator = page.locator(".mu-z-modal")
-        self.page.add_locator_handler(
-            self.promotion_modal,
-            lambda: self.promotion_modal.wait_for(
-                state="hidden",
-                timeout=self.PROMOTION_MODAL_DISMISS_TIMEOUT_MS,
-            ),
-            no_wait_after=True,
-        )
 
         # Search input: momo uses input[name="search-input"] on homepage
         # and #header-search-input on the search result page.
@@ -58,7 +50,11 @@ class SearchPage:
 
     def goto_home(self) -> None:
         """Navigate to momo homepage."""
-        self.page.goto(MOMO_HOME_URL, wait_until="load")
+        self.page.goto(MOMO_HOME_URL, wait_until="domcontentloaded")
+        self.promotion_modal.wait_for(
+            state="hidden",
+            timeout=self.PROMOTION_MODAL_DISMISS_TIMEOUT_MS,
+        )
 
     def search_by_button(self, keyword: str) -> None:
         """Fill search input and submit by clicking the search button."""
