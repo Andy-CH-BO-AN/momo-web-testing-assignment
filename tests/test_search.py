@@ -72,8 +72,8 @@ def test_search_multi_keyword_with_enter(page: Page) -> None:
     )
 
 
-def test_search_unknown_keyword_returns_fallback_results(page: Page) -> None:
-    """Verify that an unknown keyword still returns fallback search results."""
+def test_search_unknown_keyword_returns_no_result(page: Page) -> None:
+    """Verify that an unknown keyword shows the no-result state."""
     # Arrange: Navigate to momo homepage
     search_page = SearchPage(page)
     search_page.goto_home()
@@ -82,10 +82,12 @@ def test_search_unknown_keyword_returns_fallback_results(page: Page) -> None:
     # Act: Search for an unknown keyword
     search_page.search_by_button(query)
 
-    # Assert: Result page loads, preserves query, and shows fallback products
+    # Assert: Result page loads, preserves query, and shows no-result state
     expect(page).to_have_url(re.compile(rf"{re.escape(_search_path(query))}(?:\?|$)"))
     expect(search_page.search_input).to_have_value(query)
-    expect(search_page.product_titles.first).to_be_visible()
+    expect(search_page.no_result_container).to_be_visible()
+    expect(search_page.no_result_text).to_contain_text(re.compile(r"查無.*相關商品"))
+    expect(search_page.product_titles).to_have_count(0)
 
 
 def test_search_pagination(page: Page) -> None:
