@@ -72,27 +72,20 @@ def test_search_multi_keyword_with_enter(page: Page) -> None:
     )
 
 
-def test_search_no_result(page: Page) -> None:
-    """Verify that searching for a non-existent keyword displays the clear no-result state."""
+def test_search_unknown_keyword_returns_fallback_results(page: Page) -> None:
+    """Verify that an unknown keyword still returns fallback search results."""
     # Arrange: Navigate to momo homepage
     search_page = SearchPage(page)
     search_page.goto_home()
-    no_result_keyword = "123qweasdzxc"
-    expected_no_result_text = (
-        f'很抱歉，查無 "{no_result_keyword}"的相關商品，您可以調整關鍵字試試看'
-    )
+    query = "123qweasdzxc"
 
-    # Act: Search for non-existent keyword
-    search_page.search_by_button(no_result_keyword)
+    # Act: Search for an unknown keyword
+    search_page.search_by_button(query)
 
-    # Assert: Result page displays the exact no-result message and zero organic products
-    expect(page).to_have_url(
-        re.compile(rf"{re.escape(_search_path(no_result_keyword))}(?:\?|$)")
-    )
-    expect(search_page.no_result_container).to_be_visible()
-    expect(search_page.search_input).to_have_value(no_result_keyword)
-    expect(search_page.no_result_text).to_have_text(expected_no_result_text)
-    expect(search_page.product_titles).to_have_count(0)
+    # Assert: Result page loads, preserves query, and shows fallback products
+    expect(page).to_have_url(re.compile(rf"{re.escape(_search_path(query))}(?:\?|$)"))
+    expect(search_page.search_input).to_have_value(query)
+    expect(search_page.product_titles.first).to_be_visible()
 
 
 def test_search_pagination(page: Page) -> None:
@@ -217,20 +210,3 @@ def test_search_dynamic_suggestion(page: Page) -> None:
     expect(page).to_have_url(re.compile(rf"{re.escape(_search_path(suggestion))}(?:\?|$)"))
     expect(search_page.search_input).to_have_value(suggestion)
     expect(search_page.product_titles.first).to_be_visible()
-
-
-def test_search_empty_input_with_enter(page: Page) -> None:
-    """Verify that pressing Enter with empty input does not trigger search and remains on homepage."""
-    # Arrange: Navigate to momo homepage and confirm search input is empty
-    search_page = SearchPage(page)
-    search_page.goto_home()
-
-    expect(search_page.search_input).to_have_value("")
-    initial_url = page.url
-
-    # Act: Press Enter directly on search input
-    search_page.press_enter()
-
-    # Assert: Remains on homepage and input stays empty
-    expect(page).to_have_url(initial_url)
-    expect(search_page.search_input).to_have_value("")

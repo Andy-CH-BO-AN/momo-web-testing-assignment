@@ -1,6 +1,12 @@
 from typing import cast
 
-from playwright.sync_api import Locator, Page
+from playwright.sync_api import (
+    Locator,
+    Page,
+)
+from playwright.sync_api import (
+    TimeoutError as PlaywrightTimeoutError,
+)
 
 MOMO_HOME_URL = "https://www.momoshop.com.tw"
 
@@ -11,9 +17,13 @@ class SearchPage:
     Encapsulates stable locators and essential user actions for the search feature.
     Business assertions remain within the testcases to maintain readability and intent.
     """
+    PROMOTION_MODAL_APPEAR_TIMEOUT_MS = 5_000
 
     def __init__(self, page: Page) -> None:
         self.page = page
+
+        # Transient promotion modal shown during homepage load
+        self.promotion_modal: Locator = page.locator(".mu-z-modal")
 
         # Search input: momo uses input[name="search-input"] on homepage
         # and #header-search-input on the search result page.
@@ -42,8 +52,21 @@ class SearchPage:
         )
 
     def goto_home(self) -> None:
-        """Navigate to momo homepage."""
+        """Navigate to momo homepage after its transient promotion modal closes."""
         self.page.goto(MOMO_HOME_URL, wait_until="domcontentloaded")
+        self._wait_for_promotion_modal_to_close()
+
+    def _wait_for_promotion_modal_to_close(self) -> None:
+        """Wait for momo's auto-dismissed promotion modal when it appears on homepage load."""
+        try:
+            self.promotion_modal.wait_for(
+                state="visible",
+                timeout=self.PROMOTION_MODAL_APPEAR_TIMEOUT_MS,
+            )
+        except PlaywrightTimeoutError:
+            return
+
+        self.promotion_modal.wait_for(state="hidden")
 
     def search_by_button(self, keyword: str) -> None:
         """Fill search input and submit by clicking the search button."""
@@ -53,10 +76,6 @@ class SearchPage:
     def search_by_enter(self, keyword: str) -> None:
         """Fill search input and submit by pressing Enter."""
         self.search_input.fill(keyword)
-        self.search_input.press("Enter")
-
-    def press_enter(self) -> None:
-        """Press Enter directly inside search input without typing."""
         self.search_input.press("Enter")
 
     def click_search_button(self) -> None:
@@ -104,4 +123,3 @@ class SearchPage:
             """
         )
         return cast(list[str], product_ids)
-
