@@ -91,13 +91,30 @@ class SearchPage:
         """Retrieve current placeholder value from search input."""
         return self.search_input.get_attribute("placeholder") or ""
 
-    def get_organic_product_ids(self) -> list[str]:
-        """Extract product IDs from organic search result items in one browser call."""
-        product_ids = self.product_ids.evaluate_all(
+    def get_organic_product_ids(self, page_number: int) -> list[str]:
+        """Wait for a non-empty, consistent rendered page and return its ID snapshot.
+
+        Each product link's oid encodes the page and position (for example, 2_1).
+        This checks every rendered card, not the server's expected result count.
+        """
+        product_ids = self.page.wait_for_function(
             """
-            (elements) => elements
-                .map((element) => element.value.trim())
-                .filter(Boolean)
-            """
+            (pageNumber) => {
+                const cards = [...document.querySelectorAll('.listAreaLi')];
+                if (!cards.length) return false;
+                const ids = [];
+                for (const card of cards) {
+                    const id = card.querySelector('input[name="viewProdId"]')?.value.trim();
+                    const title = card.querySelector('h3.prdName');
+                    const link = title?.querySelector('a[href]');
+                    if (!id || !title?.innerText.trim() || !link) return false;
+                    const oid = new URL(link.href).searchParams.get('oid');
+                    if (oid?.split('_')[0] !== String(pageNumber)) return false;
+                    ids.push(id);
+                }
+                return ids;
+            }
+            """,
+            arg=page_number,
         )
-        return cast(list[str], product_ids)
+        return cast(list[str], product_ids.json_value())
