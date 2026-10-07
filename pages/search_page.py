@@ -1,8 +1,10 @@
+import re
 from typing import cast
 
 from playwright.sync_api import (
     Locator,
     Page,
+    expect,
 )
 
 MOMO_HOME_URL = "https://www.momoshop.com.tw"
@@ -27,7 +29,7 @@ class SearchPage:
         self.search_input: Locator = page.locator('input[name="search-input"], #header-search-input')
 
         # Search submit button in header
-        self.search_button: Locator = page.get_by_role("button", name="搜尋")
+        self.search_button: Locator = page.get_by_role("button", name="搜尋", exact=True)
 
         # Organic search result product titles
         self.product_titles: Locator = page.locator(".listAreaLi h3.prdName")
@@ -40,13 +42,13 @@ class SearchPage:
         self.no_result_text: Locator = page.locator(".noResultText")
 
         # Pagination components
-        self.active_page_indicator: Locator = page.locator(".pagination .pagination-link.selected").first
-        self.next_page_link: Locator = page.locator(".pageArea a:has-text('下一頁')").first
+        self.active_page_indicator: Locator = page.locator(".pagination .selected").first
+        self.next_page_link: Locator = page.locator(".page-next a").first
 
         # Search suggestions under '猜你想搜' on homepage
-        self.suggestion_items: Locator = page.locator(
-            "ul:has(span:has-text('猜你想搜')) [data-testid='keyword-item'] a"
-        )
+        self.suggestion_items: Locator = page.get_by_test_id(
+            "recommend-keywords-root"
+        ).get_by_role("link")
 
     def goto_home(self) -> None:
         """Navigate to momo homepage."""
@@ -71,23 +73,11 @@ class SearchPage:
         self.search_button.click()
 
     def get_first_visible_search_suggestion(self) -> tuple[str, Locator]:
-        """Find and return the text and Locator of the first visible, non-empty search suggestion.
-
-        Raises:
-            AssertionError: If no visible, non-empty search suggestion is found.
-        """
-        self.suggestion_items.first.wait_for(state="attached")
-        count = self.suggestion_items.count()
-        for index in range(count):
-            candidate_locator = self.suggestion_items.nth(index)
-            if candidate_locator.is_visible():
-                candidate_text = candidate_locator.inner_text().strip()
-                if candidate_text:
-                    return candidate_text, candidate_locator
-
-        raise AssertionError(
-            "Failed to find any visible, non-empty search suggestion in '猜你想搜' section."
-        )
+        """Wait for the first suggestion to be visible and non-empty, then return it."""
+        suggestion = self.suggestion_items.first
+        expect(suggestion).to_be_visible()
+        expect(suggestion).to_have_text(re.compile(r"\S+"), use_inner_text=True)
+        return suggestion.inner_text().strip(), suggestion
 
     def click_search_suggestion(self, suggestion_locator: Locator) -> None:
         """Click the specified search suggestion link."""
