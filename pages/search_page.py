@@ -1,5 +1,4 @@
 import re
-from typing import cast
 
 from playwright.sync_api import (
     Locator,
@@ -92,29 +91,17 @@ class SearchPage:
         return self.search_input.get_attribute("placeholder") or ""
 
     def get_organic_product_ids(self, page_number: int) -> list[str]:
-        """Wait for a non-empty, consistent rendered page and return its ID snapshot.
-
-        Each product link's oid encodes the page and position (for example, 2_1).
-        This checks every rendered card, not the server's expected result count.
-        """
-        product_ids = self.page.wait_for_function(
-            """
-            (pageNumber) => {
-                const cards = [...document.querySelectorAll('.listAreaLi')];
-                if (!cards.length) return false;
-                const ids = [];
-                for (const card of cards) {
-                    const id = card.querySelector('input[name="viewProdId"]')?.value.trim();
-                    const title = card.querySelector('h3.prdName');
-                    const link = title?.querySelector('a[href]');
-                    if (!id || !title?.innerText.trim() || !link) return false;
-                    const oid = new URL(link.href).searchParams.get('oid');
-                    if (oid?.split('_')[0] !== String(pageNumber)) return false;
-                    ids.push(id);
-                }
-                return ids;
-            }
-            """,
-            arg=page_number,
-        )
-        return cast(list[str], product_ids.json_value())
+        """Wait for the current cards' page links and non-empty IDs before reading them."""
+        cards = self.page.locator(".listAreaLi")
+        expect(cards.first).to_be_visible()
+        page_link = re.compile(rf"[?&]oid={page_number}_\d+(?:&|$)")
+        product_ids = []
+        for card in cards.all():
+            expect(card.locator("h3.prdName")).to_have_text(re.compile(r"\S+"))
+            expect(card.locator("h3.prdName a")).to_have_attribute("href", page_link)
+            product_id_input = card.locator('input[name="viewProdId"]')
+            expect(product_id_input).to_have_value(re.compile(r"\S+"))
+            product_id = product_id_input.input_value().strip()
+            assert product_id, "Product ID became empty while reading the result card"
+            product_ids.append(product_id)
+        return product_ids
