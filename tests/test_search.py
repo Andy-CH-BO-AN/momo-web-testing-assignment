@@ -1,5 +1,5 @@
 import re
-from urllib.parse import quote
+from urllib.parse import parse_qs, quote, urlsplit
 
 from playwright.sync_api import Page, expect
 
@@ -105,14 +105,11 @@ def test_search_pagination(page: Page) -> None:
 
     expect(search_page.product_titles.first).to_be_visible()
     expect(search_page.active_page_indicator).to_have_text("1")
-    page_1_url = page.url
-
-    page_1_product_ids = search_page.get_organic_product_ids()
+    page_1_product_ids = search_page.get_organic_product_ids(page_number=1)
     assert page_1_product_ids, "Expected organic products on page 1"
     assert len(page_1_product_ids) == len(set(page_1_product_ids)), (
         "Pagination result integrity error: duplicate product IDs found within Page 1"
     )
-    page_1_first_product_id = page_1_product_ids[0]
 
     # Act: Click next page pagination control
     search_page.click_next_page()
@@ -120,9 +117,7 @@ def test_search_pagination(page: Page) -> None:
     # Assert: Active page changes to 2, query state remains, and second page products load
     expect(search_page.active_page_indicator).to_have_text("2")
     expect(search_page.search_input).to_have_value(keyword)
-    expect(search_page.product_ids.first).not_to_have_value(page_1_first_product_id)
-
-    page_2_product_ids = search_page.get_organic_product_ids()
+    page_2_product_ids = search_page.get_organic_product_ids(page_number=2)
     assert page_2_product_ids, "Expected organic products on page 2"
     assert len(page_2_product_ids) == len(set(page_2_product_ids)), (
         "Pagination result integrity error: duplicate product IDs found within Page 2"
@@ -134,7 +129,12 @@ def test_search_pagination(page: Page) -> None:
         f"{duplicate_ids}"
     )
 
-    assert page.url != page_1_url, f"Page URL did not change after pagination: {page.url}"
+    expect(page).to_have_url(re.compile(r"[?&]curPage=2(?:&|$)"))
+    page_2_url = urlsplit(page.url)
+    assert page_2_url.path == _search_path(keyword), f"Search path changed: {page.url}"
+    assert parse_qs(page_2_url.query).get("curPage") == ["2"], (
+        f"Expected exactly curPage=2 in pagination URL: {page.url}"
+    )
 
 
 def test_search_special_character(page: Page) -> None:

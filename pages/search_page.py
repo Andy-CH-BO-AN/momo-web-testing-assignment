@@ -1,5 +1,4 @@
 import re
-from typing import cast
 
 from playwright.sync_api import (
     Locator,
@@ -31,11 +30,13 @@ class SearchPage:
         # Search submit button in header
         self.search_button: Locator = page.get_by_role("button", name="搜尋", exact=True)
 
-        # Organic search result product titles
-        self.product_titles: Locator = page.locator(".listAreaLi h3.prdName")
+        # Organic search result cards and their title links
+        self.product_cards: Locator = page.locator(".listAreaLi")
+        self.product_titles: Locator = self.product_cards.locator("h3.prdName")
+        self.product_links: Locator = self.product_titles.locator("a")
 
         # Organic search result product IDs
-        self.product_ids: Locator = page.locator(".listAreaLi input[name='viewProdId']")
+        self.product_ids: Locator = self.product_cards.locator("input[name='viewProdId']")
 
         # Dedicated no-result container and message text
         self.no_result_container: Locator = page.locator(".noSearchResultWrapper")
@@ -91,13 +92,17 @@ class SearchPage:
         """Retrieve current placeholder value from search input."""
         return self.search_input.get_attribute("placeholder") or ""
 
-    def get_organic_product_ids(self) -> list[str]:
-        """Extract product IDs from organic search result items in one browser call."""
-        product_ids = self.product_ids.evaluate_all(
-            """
-            (elements) => elements
-                .map((element) => element.value.trim())
-                .filter(Boolean)
-            """
-        )
-        return cast(list[str], product_ids)
+    def get_organic_product_ids(self, page_number: int) -> list[str]:
+        """Wait for the current cards' page links and non-empty IDs before reading them."""
+        expect(self.product_cards.first).to_be_visible()
+        page_link = re.compile(rf"[?&]oid={page_number}_\d+(?:&|$)")
+        product_ids = []
+        for index in range(self.product_cards.count()):
+            expect(self.product_titles.nth(index)).to_have_text(re.compile(r"\S+"))
+            expect(self.product_links.nth(index)).to_have_attribute("href", page_link)
+            product_id_input = self.product_ids.nth(index)
+            expect(product_id_input).to_have_value(re.compile(r"\S+"))
+            product_id = product_id_input.input_value().strip()
+            assert product_id, "Product ID became empty while reading the result card"
+            product_ids.append(product_id)
+        return product_ids
