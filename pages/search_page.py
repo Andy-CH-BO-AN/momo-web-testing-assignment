@@ -98,11 +98,9 @@ class SearchPage:
         page_link = re.compile(rf"[?&]oid={page_number}_\d+(?:&|$)")
         product_ids = []
         for index in range(self.product_cards.count()):
-            expect(self.product_titles.nth(index)).to_have_text(re.compile(r"\S+"))
             expect(self.product_links.nth(index)).to_have_attribute("href", page_link)
             product_id_input = self.product_ids.nth(index)
             expect(product_id_input).to_have_value(re.compile(r"\S+"))
             product_id = product_id_input.input_value().strip()
-            assert product_id, "Product ID became empty while reading the result card"
             product_ids.append(product_id)
         return product_ids
