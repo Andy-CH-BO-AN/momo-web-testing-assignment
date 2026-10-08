@@ -40,7 +40,7 @@ def test_search_normal_keyword_with_button(page: Page) -> None:
 
 
 def test_search_multi_keyword_with_enter(page: Page) -> None:
-    """Verify that multi-keyword search via Enter returns at least one product matching all tokens."""
+    """Verify that every multi-keyword search result matches at least one token, ignoring case."""
     # Arrange: Navigate to momo homepage
     search_page = SearchPage(page)
     search_page.goto_home()
@@ -57,18 +57,20 @@ def test_search_multi_keyword_with_enter(page: Page) -> None:
 
     titles = search_page.product_titles.all_inner_texts()
 
-    matching_results = [
-        title
-        for title in titles
-        if all(
+    assert titles, "Expected product titles for multi-keyword search"
+    failed_results = [
+        (index, title)
+        for index, title in enumerate(titles, start=1)
+        if not any(
             keyword.lower() in title.lower()
             for keyword in required_keywords
         )
     ]
-    assert matching_results, (
-        f"Expected at least one product title containing all keywords "
-        f"{required_keywords}. "
-        f"Sample titles: {titles[:5]}"
+    assert not failed_results, (
+        f"Expected every product title to contain at least one keyword "
+        f"{required_keywords} (case-insensitive).\n"
+        f"Non-matching result indexes: {[idx for idx, _ in failed_results]}.\n"
+        f"Sample non-matching titles: {[title for _, title in failed_results[:5]]}"
     )
 
 
@@ -138,7 +140,7 @@ def test_search_pagination(page: Page) -> None:
 
 
 def test_search_special_character(page: Page) -> None:
-    """Verify that searching with special character retains query state and returns matching products."""
+    """Verify that special-character search retains query state and every title contains iphone."""
     # Arrange: Navigate to momo homepage
     search_page = SearchPage(page)
     search_page.goto_home()
@@ -147,16 +149,22 @@ def test_search_special_character(page: Page) -> None:
     # Act: Submit search with special character
     search_page.search_by_button(query)
 
-    # Assert: Query state preserves 'iphone+' and results include an iPhone-related product
+    # Assert: Query state preserves 'iphone+' and every result is iPhone-related
     expect(page).to_have_url(re.compile(rf"{re.escape(_search_path(query))}(?:\?|$)"))
     expect(search_page.product_titles.first).to_be_visible()
     expect(search_page.search_input).to_have_value(query)
     titles = search_page.product_titles.all_inner_texts()
 
-    has_matching_title = any("iphone" in title.lower() for title in titles)
-    assert has_matching_title, (
-        "Expected at least one product title containing 'iphone', "
-        f"got titles: {titles[:5]}"
+    assert titles, "Expected product titles for special-character search"
+    failed_results = [
+        (index, title)
+        for index, title in enumerate(titles, start=1)
+        if "iphone" not in title.lower()
+    ]
+    assert not failed_results, (
+        "Expected every product title to contain 'iphone' (case-insensitive).\n"
+        f"Non-matching result indexes: {[idx for idx, _ in failed_results]}.\n"
+        f"Sample non-matching titles: {[title for _, title in failed_results[:5]]}"
     )
 
 
